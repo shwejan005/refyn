@@ -1,68 +1,82 @@
 import { NextResponse } from "next/server"
+import { GoogleGenAI } from "@google/genai"
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY
-const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+})
+
+async function runGemini(prompt) {
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+  })
+
+  if (!response || !response.text) {
+    throw new Error("Empty Gemini response")
+  }
+
+  return response.text
+}
 
 export async function POST(req) {
   try {
-    const { prompt } = await req.json()
-
-    if (!prompt || !prompt.trim()) {
-      return NextResponse.json({ error: "Empty prompt" }, { status: 400 })
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json(
+        { error: "Missing GEMINI_API_KEY" },
+        { status: 500 }
+      )
     }
 
-    // ---------- REFINE PROMPT ----------
-    const refineRes = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text: `Rewrite the following prompt to be clear, specific, and well-structured.
+    const { mode, prompt, refinedPrompt } = await req.json()
+
+    if (!prompt || !prompt.trim()) {
+      return NextResponse.json(
+        { error: "Prompt is empty" },
+        { status: 400 }
+      )
+    }
+
+    // -------- REFINE ONLY --------
+    if (mode === "refine") {
+      const refined = await runGemini(
+        `Rewrite the following prompt to be clear, specific, and well-structured.
 Do NOT change the intent.
-Do NOT add extra tasks.
 Return ONLY the refined prompt.
 
 Prompt:
-${prompt}`,
-              },
-            ],
-          },
-        ],
-      }),
-    })
+${prompt}`
+      )
 
-    const refineJson = await refineRes.json()
-    const refinedPrompt =
-      refineJson?.candidates?.[0]?.content?.parts?.[0]?.text || ""
-
-    // ---------- RUN PROMPTS ----------
-    async function runPrompt(text) {
-      const res = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text }] }],
-        }),
-      })
-
-      const json = await res.json()
-      return json?.candidates?.[0]?.content?.parts?.[0]?.text || ""
+      return NextResponse.json({ refinedPrompt: refined })
     }
 
-    const originalOutput = await runPrompt(prompt)
-    const refinedOutput = await runPrompt(refinedPrompt)
+    // -------- COMPARE --------
+    if (mode === "compare") {
+      if (!refinedPrompt || !refinedPrompt.trim()) {
+        return NextResponse.json(
+          { error: "Missing refinedPrompt" },
+          { status: 400 }
+        )
+      }
 
-    return NextResponse.json({
-      refinedPrompt,
-      originalOutput,
-      refinedOutput,
-    })
+      const originalOutput = await runGemini(prompt)
+      const refinedOutput = await runGemini(refinedPrompt)
+
+      return NextResponse.json({
+        originalOutput,
+        refinedOutput,
+      })
+    }
+
+    return NextResponse.json(
+      { error: "Invalid mode" },
+      { status: 400 }
+    )
   } catch (err) {
-    return NextResponse.json({ error: "Gemini request failed" }, { status: 500 })
+    console.error("GEMINI ERROR:", err)
+    return NextResponse.json(
+      { error: err.message || "Gemini failed" },
+      { status: 500 }
+    )
   }
 }
