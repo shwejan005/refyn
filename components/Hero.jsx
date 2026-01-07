@@ -43,7 +43,7 @@ export default function Hero() {
             Prompt Engineering
             <br />
             made{" "}
-            <span className="bg-gradient-to-b from-[#fb923c] to-[#f97316] bg-clip-text text-transparent italic">
+            <span className="bg-linear-to-b from-[#fb923c] to-[#f97316] bg-clip-text text-transparent italic">
               Observable
             </span>
           </motion.h1>
