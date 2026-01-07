@@ -28,10 +28,16 @@ export default function Hero() {
             transition={{ duration: 0.5 }}
             className="mb-8 flex justify-center"
           >
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80 backdrop-blur">
-              Prompt Refinement Playground
+            {/* Gradient border */}
+            <div className="rounded-full p-px bg-linear-to-b from-[#fb923c] to-[#f97316]">
+              {/* Inner content (NO gradient bg) */}
+              <div className="inline-flex items-center gap-2 rounded-full
+                bg-black/40 px-4 py-2 text-sm text-white/80 backdrop-blur">
+                REFYN
+              </div>
             </div>
           </motion.div>
+
 
           {/* Heading */}
           <motion.h1

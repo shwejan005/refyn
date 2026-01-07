@@ -4,25 +4,55 @@ import { motion } from "framer-motion"
 import { useState } from "react"
 import { Button } from "./ui/button"
 
-function FormattedText({ text }) {
-  if (!text) return <span className="text-white/40">—</span>
+/* ===== PARSERS (RIGHT SIDE ONLY) ===== */
 
-  return text.split("\n").map((line, i) => {
-    if (line.trim().startsWith("-")) {
+function parseBoldText(text) {
+  return text.split(/(\*\*.+?\*\*)/g).map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <span key={i} className="font-medium text-orange-300">
+        {part.slice(2, -2)}
+      </span>
+    ) : (
+      part
+    )
+  )
+}
+
+function parseAndStyleMessage(content) {
+  if (!content) return <span className="text-white/40">—</span>
+
+  return content.split("\n").map((line, index) => {
+    if (line.startsWith("**") && line.endsWith("**")) {
       return (
-        <li key={i} className="ml-4 list-disc">
-          {line.replace("-", "").trim()}
-        </li>
+        <h3
+          key={index}
+          className="text-lg font-semibold mt-4 mb-2 text-orange-300"
+        >
+          {line.replace(/\*\*/g, "")}
+        </h3>
+      )
+    }
+
+    if (line.trim().startsWith("- ") || line.trim().startsWith("* ")) {
+      return (
+        <div key={index} className="flex items-start gap-2 ml-4 mb-1">
+          <span className="text-orange-400 mt-1">•</span>
+          <span className="flex-1">
+            {parseBoldText(line.replace(/^[-*] /, ""))}
+          </span>
+        </div>
       )
     }
 
     return (
-      <p key={i} className="mb-2 leading-relaxed">
-        {line}
+      <p key={index} className="mb-2 text-white/80">
+        {parseBoldText(line)}
       </p>
     )
   })
 }
+
+/* ===== COMPONENT ===== */
 
 export default function Playground() {
   const [prompt, setPrompt] = useState("")
@@ -101,7 +131,7 @@ export default function Playground() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-          {/* LEFT — ORIGINAL */}
+          {/* LEFT — ORIGINAL (PLAIN TEXT, NO PARSING) */}
           <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-6">
             <h3 className="text-sm text-white/60 mb-2">
               Original Prompt
@@ -119,17 +149,17 @@ export default function Playground() {
                 size="sm"
                 onClick={handleRefine}
                 disabled={loading}
-                className="rounded-full px-4 py-2 text-xs font-medium text-black
+                className="rounded-full px-4 py-2 text-xs font-medium text-black hover:cursor-pointer
                   bg-linear-to-b from-[#fb923c] to-[#f97316]"
               >
-                {loading ? "Working..." : "Refine Prompt"}
+                Refine Prompt
               </Button>
 
               <Button
                 size="sm"
                 onClick={handleCompare}
                 disabled={loading || !refined}
-                className="rounded-full px-4 py-2 text-xs font-medium text-black
+                className="rounded-full px-4 py-2 text-xs font-medium text-black hover:cursor-pointer
                   bg-linear-to-b from-[#fb923c] to-[#f97316]"
               >
                 Compare Results
@@ -139,42 +169,39 @@ export default function Playground() {
                 size="sm"
                 onClick={handleClear}
                 disabled={loading}
-                className="rounded-full px-4 py-2 text-xs font-medium
+                className="rounded-full px-4 py-2 text-xs font-medium hover:cursor-pointer
                   border border-white/20 text-white/70 hover:bg-white/10"
               >
                 Clear
               </Button>
             </div>
 
-            {/* Output Original */}
             <div className="mt-6 rounded-lg border border-white/10 bg-black/40 p-4 max-h-64 overflow-y-auto">
               <p className="text-xs text-white/40 mb-2">
                 Output (Original)
               </p>
-              <div className="text-sm text-white/80">
-                <FormattedText text={originalOutput} />
-              </div>
+              <pre className="text-sm text-white/70 whitespace-pre-wrap font-sans">
+                {originalOutput || "—"}
+              </pre>
             </div>
           </div>
 
-          {/* RIGHT — REFINED (HIGHLIGHTED) */}
+          {/* RIGHT — REFINED (PARSED + ORANGE) */}
           <div className="rounded-2xl border border-orange-500/40 bg-gradient-to-b from-orange-500/15 to-orange-600/5 backdrop-blur p-6">
             <h3 className="text-sm text-orange-300 mb-2">
               Refined Prompt
             </h3>
 
-            {/* Refined Prompt Box */}
             <div className="h-32 overflow-y-auto rounded-lg bg-black/50 border border-orange-500/30 p-3 text-sm text-orange-200 whitespace-pre-wrap">
               {refined || "—"}
             </div>
 
-            {/* Output Refined */}
             <div className="mt-6 rounded-lg border border-orange-500/30 bg-black/40 p-4 max-h-64 overflow-y-auto">
               <p className="text-xs text-orange-300 mb-2">
                 Output (Refined)
               </p>
               <div className="text-sm text-orange-100">
-                <FormattedText text={refinedOutput} />
+                {parseAndStyleMessage(refinedOutput)}
               </div>
             </div>
 

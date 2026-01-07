@@ -8,6 +8,10 @@ const ai = new GoogleGenAI({
 async function runGemini(prompt) {
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
+    generationConfig: {
+      temperature: 0.2,          // ↓ less randomness
+      maxOutputTokens: 250,      // ↓ short output
+    },
     contents: prompt,
   })
 
@@ -20,27 +24,18 @@ async function runGemini(prompt) {
 
 export async function POST(req) {
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json(
-        { error: "Missing GEMINI_API_KEY" },
-        { status: 500 }
-      )
-    }
-
     const { mode, prompt, refinedPrompt } = await req.json()
 
     if (!prompt || !prompt.trim()) {
-      return NextResponse.json(
-        { error: "Prompt is empty" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Prompt is empty" }, { status: 400 })
     }
 
-    // -------- REFINE ONLY --------
+    // -------- REFINE (SHORT + STRUCTURED) --------
     if (mode === "refine") {
       const refined = await runGemini(
-        `Rewrite the following prompt to be clear, specific, and well-structured.
-Do NOT change the intent.
+        `Rewrite the following prompt to be clear, concise, and well-structured.
+Keep it SHORT.
+Do NOT change intent.
 Return ONLY the refined prompt.
 
 Prompt:
@@ -50,17 +45,21 @@ ${prompt}`
       return NextResponse.json({ refinedPrompt: refined })
     }
 
-    // -------- COMPARE --------
+    // -------- COMPARE (SHORT OUTPUTS) --------
     if (mode === "compare") {
-      if (!refinedPrompt || !refinedPrompt.trim()) {
-        return NextResponse.json(
-          { error: "Missing refinedPrompt" },
-          { status: 400 }
-        )
+      if (!refinedPrompt) {
+        return NextResponse.json({ error: "Missing refined prompt" }, { status: 400 })
       }
 
-      const originalOutput = await runGemini(prompt)
-      const refinedOutput = await runGemini(refinedPrompt)
+      const originalOutput = await runGemini(
+        `${prompt}
+Respond briefly in under 6 bullet points or short paragraphs.`
+      )
+
+      const refinedOutput = await runGemini(
+        `${refinedPrompt}
+Respond briefly in under 6 bullet points or short paragraphs.`
+      )
 
       return NextResponse.json({
         originalOutput,
@@ -68,10 +67,7 @@ ${prompt}`
       })
     }
 
-    return NextResponse.json(
-      { error: "Invalid mode" },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: "Invalid mode" }, { status: 400 })
   } catch (err) {
     console.error("GEMINI ERROR:", err)
     return NextResponse.json(
