@@ -129,6 +129,15 @@ export default function Playground() {
           </div>
         )}
 
+        <div className="mb-8 text-center">
+            <p className="text-xs font-mono text-white/30 uppercase tracking-widest">
+                Antigravity Prototype v0.1
+            </p>
+            <p className="text-white/50 text-sm mt-2 max-w-xl mx-auto">
+                Demonstrating how Antigravity creates structured, polished prompts from plain English inputs.
+            </p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
           {/* LEFT — ORIGINAL (PLAIN TEXT, NO PARSING) */}
@@ -176,8 +185,8 @@ export default function Playground() {
               </Button>
             </div>
 
-            <div className="mt-6 rounded-lg border border-white/10 bg-black/40 p-4 max-h-64 overflow-y-auto">
-              <p className="text-xs text-white/40 mb-2">
+            <div className="mt-6 rounded-lg border border-white/10 bg-black/40 p-4 h-64 overflow-y-auto custom-scrollbar">
+              <p className="text-xs text-white/40 mb-2 sticky top-0 bg-black/40 backdrop-blur-md pb-2 -mt-2 pt-2">
                 Output (Original)
               </p>
               <pre className="text-sm text-white/70 whitespace-pre-wrap font-sans">
@@ -196,8 +205,8 @@ export default function Playground() {
               {refined || "—"}
             </div>
 
-            <div className="mt-6 rounded-lg border border-orange-500/30 bg-black/40 p-4 max-h-64 overflow-y-auto">
-              <p className="text-xs text-orange-300 mb-2">
+            <div className="mt-6 rounded-lg border border-orange-500/30 bg-black/40 p-4 h-64 overflow-y-auto orange-scrollbar">
+              <p className="text-xs text-orange-300 mb-2 sticky top-0 bg-black/40 backdrop-blur-md pb-2 -mt-2 pt-2">
                 Output (Refined)
               </p>
               <div className="text-sm text-orange-100">
